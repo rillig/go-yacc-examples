@@ -2,24 +2,6 @@ package json
 
 //go:generate go tool yacc json.y
 
-type ValueType uint8
-
-const (
-	VOBJECT ValueType = iota
-	VARRAY
-	VSTRING
-	VNUMBER
-	VTRUE
-	VFALSE
-	VNULL
-)
-
-func (t ValueType) String() string {
-	return [...]string{
-		"VOBJECT", "VARRAY", "VSTRING", "VNUMBER", "VTRUE", "VFALSE", "VNULL",
-	}[t]
-}
-
 // Value represents a JSON value. Depending on the `Type`, one of the
 // other fields contains the actual value.
 type Value struct {
@@ -36,6 +18,24 @@ type Token struct {
 	TokenType int
 	String    string
 	Number    float64
+}
+
+type ValueType uint8
+
+const (
+	VOBJECT ValueType = iota
+	VARRAY
+	VSTRING
+	VNUMBER
+	VTRUE
+	VFALSE
+	VNULL
+)
+
+func (t ValueType) String() string {
+	return [...]string{
+		"VOBJECT", "VARRAY", "VSTRING", "VNUMBER", "VTRUE", "VFALSE", "VNULL",
+	}[t]
 }
 
 // Parse converts a flat list of tokens into a tree of JSON values.
