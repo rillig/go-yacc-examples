@@ -9,9 +9,8 @@ package json
 	Value *Value
 }
 
-// Each of the following grammar productions has a result type, which
-// must be one of the field names of the `%union` definition above.
-%type <Value> value keyvalues values
+// By convention, tokens are written in UPPERCASE while grammar
+// productions are written in snake_case.
 
 // Tokens without additional information. These are part of the
 // concrete syntax, but not of the abstract one.
@@ -24,14 +23,18 @@ package json
 %token <Value> TSTRING TNUMBER
 %token <Value> TFALSE TTRUE TNULL
 
+// Each of the following grammar productions has a result type, which
+// must be one of the field names of the `%union` definition above.
+%type <Value> value objectvalues arrayvalues
+
 %%
 
-// The tokens starting with TNUMBER don’t have explicit code, since
-// they only copy the value, i.e. their code would be `{ $$ = $1 }`,
-// which can be omitted.
+// The tokens TNUMBER and below don’t have explicit code, since they
+// only copy the value, i.e. their code would be `{ $$ = $1 }`, which
+// can be omitted.
 value
-	: TOBJECTOPEN keyvalues TOBJECTCLOSE { $$ = $2 }
-	| TARRAYOPEN values TARRAYCLOSE { $$ = $2 }
+	: TOBJECTOPEN objectvalues TOBJECTCLOSE { $$ = $2 }
+	| TARRAYOPEN arrayvalues TARRAYCLOSE { $$ = $2 }
 	| TNUMBER
 	| TSTRING
 	| TTRUE
@@ -39,11 +42,11 @@ value
 	| TNULL
 	;
 
-keyvalues
+objectvalues
 	: TSTRING TCOLON value {
 		$$ = &Value{Type: VOBJECT, Properties: map[string]Value { $1.String: *$3 }}
 	}
-	| keyvalues TCOMMA TSTRING TCOLON value {
+	| objectvalues TCOMMA TSTRING TCOLON value {
 		$$.Properties[$3.String] = *$5
 	}
 	| /* empty */ {
@@ -51,11 +54,11 @@ keyvalues
 	}
 	;
 
-values
+arrayvalues
 	: value {
 		$$ = &Value{Type: VARRAY, Elements: []Value{*$1}}
 	}
-	| values TCOMMA value {
+	| arrayvalues TCOMMA value {
 		$$.Elements = append($$.Elements, *$3)
 	}
 	| /* empty */ {
