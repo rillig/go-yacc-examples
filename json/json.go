@@ -2,10 +2,10 @@ package json
 
 //go:generate go tool yacc json.y
 
-type VType uint8
+type ValueType uint8
 
 const (
-	VOBJECT VType = iota
+	VOBJECT ValueType = iota
 	VARRAY
 	VSTRING
 	VNUMBER
@@ -14,31 +14,37 @@ const (
 	VNULL
 )
 
-func (t VType) String() string {
+func (t ValueType) String() string {
 	return [...]string{
 		"VOBJECT", "VARRAY", "VSTRING", "VNUMBER", "VTRUE", "VFALSE", "VNULL",
 	}[t]
 }
 
+// Value represents a JSON value. Depending on the `Type`, one of the
+// other fields contains the actual value.
 type Value struct {
-	Type       VType
+	Type       ValueType
 	Properties map[string]Value
 	Elements   []Value
 	String     string
 	Number     float64
 }
 
+// Token is a basic building block of JSON text, e.g. an opening brace
+// or a number.
 type Token struct {
 	TokenType int
 	String    string
 	Number    float64
 }
 
+// Parse converts a flat list of tokens into a tree of JSON values.
 func Parse(tokens []Token) (Value, error) {
 	p := &yyParserImpl{}
 	lexer := &lexer{0, tokens, ""}
 	_ = p.Parse(lexer)
 	if lexer.error == "" {
+		// See http://stackoverflow.com/q/36822702
 		return *p.stack[1].Value, nil
 	}
 	return Value{}, jsonerror(lexer.error)
@@ -49,11 +55,6 @@ type lexer struct {
 	tokens []Token
 	error  string
 }
-type jsonerror string
-
-func (e jsonerror) Error() string {
-	return string(e)
-}
 
 func (l *lexer) Lex(lval *yySymType) int {
 	if l.i == len(l.tokens) {
@@ -62,6 +63,10 @@ func (l *lexer) Lex(lval *yySymType) int {
 
 	token := l.tokens[l.i]
 	l.i++
+
+	// Those tokens that have an associated type in json.y (see the
+	// %token definitions) must fill the corresponding field of the
+	// SymType.
 	switch token.TokenType {
 	case TSTRING:
 		lval.Value = &Value{Type: VSTRING, String: token.String}
@@ -79,4 +84,10 @@ func (l *lexer) Lex(lval *yySymType) int {
 
 func (l *lexer) Error(s string) {
 	l.error = s
+}
+
+type jsonerror string
+
+func (e jsonerror) Error() string {
+	return string(e)
 }
