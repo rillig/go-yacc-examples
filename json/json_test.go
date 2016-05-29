@@ -14,6 +14,17 @@ func Test(t *testing.T) {
 }
 
 func (s *Suite) TestParse(c *check.C) {
+	var currentTokens []Token
+	given := func(tokens ...Token) {
+		currentTokens = tokens
+	}
+	expect := func(expected Value) {
+		actual, error := Parse(currentTokens)
+		if c.Check(error, check.IsNil) {
+			c.Check(actual, check.DeepEquals, expected)
+		}
+	}
+
 	tstring := func(s string) Token {
 		return Token{TokenType: TSTRING, String: s}
 	}
@@ -57,61 +68,56 @@ func (s *Suite) TestParse(c *check.C) {
 	jfalse := Value{Type: VFALSE}
 	jnull := Value{Type: VNULL}
 
-	test := func(expected Value, tokens ...Token) {
-		actual, error := Parse(tokens)
-		if c.Check(error, check.IsNil) {
-			c.Check(actual, check.DeepEquals, expected)
-		}
-	}
+	given(tnull)
+	expect(jnull)
 
-	test(jnull, tnull)
-	test(jfalse, tfalse)
-	test(jtrue, ttrue)
-	test(jnumber(1.2), tnumber(1.2))
-	test(jstring("str"), tstring("str"))
-	test(jobject(), tobjectopen, tobjectclose)
-	test(jarray(), tarrayopen, tarrayclose)
+	given(tfalse)
+	expect(jfalse)
 
-	test(jobject(jkeyvalue("key", jstring("value"))),
-		tobjectopen,
+	given(ttrue)
+	expect(jtrue)
+
+	given(tnumber(1.2))
+	expect(jnumber(1.2))
+
+	given(tstring("str"))
+	expect(jstring("str"))
+
+	given(tobjectopen, tobjectclose)
+	expect(jobject())
+
+	given(tarrayopen, tarrayclose)
+	expect(jarray())
+
+	given(tobjectopen,
 		tstring("key"), tcolon, tstring("value"),
 		tobjectclose)
+	expect(jobject(jkeyvalue("key", jstring("value"))))
 
-	test(
-		jobject(
-			jkeyvalue("key1", jstring("value1")),
-			jkeyvalue("key2", jstring("value2"))),
-
-		tobjectopen,
-		tstring("key1"), tcolon, tstring("value1"),
-		tcomma,
+	given(tobjectopen,
+		tstring("key1"), tcolon, tstring("value1"), tcomma,
 		tstring("key2"), tcolon, tstring("value2"),
 		tobjectclose)
+	expect(jobject(
+		jkeyvalue("key1", jstring("value1")),
+		jkeyvalue("key2", jstring("value2"))))
 
-	test(
-		jarray(jstring("element")),
-
-		tarrayopen,
+	given(tarrayopen,
 		tstring("element"),
 		tarrayclose)
+	expect(jarray(jstring("element")))
 
-	test(
-		jarray(
-			jstring("element0"),
-			jnumber(1.0),
-			jtrue,
-			jfalse,
-			jnull),
-
-		tarrayopen,
-		tstring("element0"),
-		tcomma,
-		tnumber(1.0),
-		tcomma,
-		ttrue,
-		tcomma,
-		tfalse,
-		tcomma,
+	given(tarrayopen,
+		tstring("element0"), tcomma,
+		tnumber(1.0), tcomma,
+		ttrue, tcomma,
+		tfalse, tcomma,
 		tnull,
 		tarrayclose)
+	expect(jarray(
+		jstring("element0"),
+		jnumber(1.0),
+		jtrue,
+		jfalse,
+		jnull))
 }
