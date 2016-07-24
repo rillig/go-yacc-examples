@@ -1,5 +1,7 @@
 package json
 
+import "errors"
+
 //go:generate go tool yacc json.y
 
 // Value represents a JSON value. Depending on the `Type`, one of the
@@ -40,20 +42,21 @@ func (t ValueType) String() string {
 
 // Parse converts a flat list of tokens into a tree of JSON values.
 func Parse(tokens []Token) (Value, error) {
-	p := &yyParserImpl{}
-	lexer := &lexer{0, tokens, ""}
+	p := yyNewParser()
+	lexer := &lexer{tokens: tokens}
 	_ = p.Parse(lexer)
 	if lexer.error == "" {
 		// See http://stackoverflow.com/q/36822702
-		return *p.stack[1].Value, nil
+		return *lexer.result, nil
 	}
-	return Value{}, jsonerror(lexer.error)
+	return Value{}, errors.New(lexer.error)
 }
 
 type lexer struct {
 	i      int
 	tokens []Token
 	error  string
+	result *Value
 }
 
 func (l *lexer) Lex(lval *yySymType) int {
@@ -84,10 +87,4 @@ func (l *lexer) Lex(lval *yySymType) int {
 
 func (l *lexer) Error(s string) {
 	l.error = s
-}
-
-type jsonerror string
-
-func (e jsonerror) Error() string {
-	return string(e)
 }

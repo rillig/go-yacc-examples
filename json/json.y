@@ -25,9 +25,13 @@ package json
 
 // Each of the following grammar productions has a result type, which
 // must be one of the field names of the `%union` definition above.
-%type <Value> value objectvalues arrayvalues
+%type <Value> start value objectvalues arrayvalues
 
 %%
+
+start : value {
+	yylex.(*lexer).result = $1
+}
 
 // The tokens TNUMBER and below don’t have explicit code, since they
 // only copy the value, i.e. their code would be `{ $$ = $1 }`, which
