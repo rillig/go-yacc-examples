@@ -2,7 +2,7 @@ package json
 
 import "errors"
 
-//go:generate go tool yacc json.y
+//go:generate goyacc json.y
 
 // Value represents a JSON value. Depending on the `Type`, one of the
 // other fields contains the actual value.
